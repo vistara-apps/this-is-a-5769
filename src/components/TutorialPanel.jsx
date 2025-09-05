@@ -1,10 +1,72 @@
 import React, { useState } from 'react';
-import { BookOpen, Play, CheckCircle, Lock } from 'lucide-react';
+import { BookOpen, Play, CheckCircle, Lock, Target, Zap } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+import ScenarioModal from './ScenarioModal';
+import TutorialModal, { defaultTutorials } from './TutorialModal';
+import { marketService } from '../services/api';
 
 const TutorialPanel = () => {
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState('basics');
+  const [selectedScenario, setSelectedScenario] = useState(null);
+  const [selectedTutorial, setSelectedTutorial] = useState(null);
+  const [showScenarioModal, setShowScenarioModal] = useState(false);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
+
+  // Practice scenarios data
+  const scenarios = [
+    {
+      scenarioId: 'earnings-1',
+      title: 'Quarterly Earnings Report',
+      description: 'A major tech company is about to announce quarterly earnings. Market expectations are high.',
+      type: 'earnings',
+      impact: 'positive',
+      difficulty: 'beginner',
+      estimatedTime: '5 min'
+    },
+    {
+      scenarioId: 'market-crash-1',
+      title: 'Market Volatility Spike',
+      description: 'Breaking news causes sudden market volatility. How do you protect your portfolio?',
+      type: 'news',
+      impact: 'negative',
+      difficulty: 'intermediate',
+      estimatedTime: '7 min'
+    },
+    {
+      scenarioId: 'breakout-1',
+      title: 'Technical Breakout',
+      description: 'A stock breaks through a key resistance level with high volume. What\'s your move?',
+      type: 'technical',
+      impact: 'positive',
+      difficulty: 'advanced',
+      estimatedTime: '6 min'
+    }
+  ];
+
+  // Event handlers
+  const handleScenarioStart = (scenario) => {
+    setSelectedScenario(scenario);
+    setShowScenarioModal(true);
+  };
+
+  const handleTutorialStart = (tutorialId) => {
+    const tutorial = defaultTutorials.find(t => t.tutorialId === tutorialId);
+    if (tutorial) {
+      setSelectedTutorial(tutorial);
+      setShowTutorialModal(true);
+    }
+  };
+
+  const handleScenarioComplete = (scenarioId, result) => {
+    console.log('Scenario completed:', scenarioId, result);
+    // In production, save to backend
+  };
+
+  const handleTutorialComplete = (tutorialId) => {
+    console.log('Tutorial completed:', tutorialId);
+    // In production, save progress to backend
+  };
 
   const tutorials = {
     basics: [
@@ -80,8 +142,18 @@ const TutorialPanel = () => {
       alert('This tutorial requires a Premium subscription. Upgrade to access advanced content!');
       return;
     }
-    // In a real app, this would open the tutorial
-    console.log('Opening tutorial:', tutorial.title);
+    
+    // Map old tutorial IDs to new tutorial system
+    const tutorialMapping = {
+      1: 'basics-1',
+      2: 'risk-management-1',
+      3: 'risk-management-1',
+      4: 'market-analysis-1',
+      5: 'market-analysis-1'
+    };
+    
+    const tutorialId = tutorialMapping[tutorial.id] || 'basics-1';
+    handleTutorialStart(tutorialId);
   };
 
   return (
@@ -92,7 +164,7 @@ const TutorialPanel = () => {
       </div>
       
       <div className="flex space-x-1 mb-4">
-        {Object.keys(tutorials).map((tab) => (
+        {['basics', 'strategies', 'scenarios'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -102,13 +174,44 @@ const TutorialPanel = () => {
                 : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
-            {tab}
+            {tab === 'scenarios' ? 'Practice' : tab}
           </button>
         ))}
       </div>
 
       <div className="space-y-3 max-h-80 overflow-y-auto">
-        {tutorials[activeTab].map((tutorial) => (
+        {activeTab === 'scenarios' ? (
+          scenarios.map((scenario) => (
+            <div
+              key={scenario.scenarioId}
+              onClick={() => handleScenarioStart(scenario)}
+              className="p-4 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition-all cursor-pointer"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Target className="w-4 h-4 text-blue-400" />
+                    <h3 className="font-medium text-white">{scenario.title}</h3>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      scenario.difficulty === 'beginner' ? 'bg-green-500/20 text-green-400' :
+                      scenario.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {scenario.difficulty}
+                    </span>
+                  </div>
+                  <p className="text-sm text-white/70 mb-2">{scenario.description}</p>
+                  <div className="flex items-center space-x-4 text-xs text-white/50">
+                    <span>{scenario.estimatedTime}</span>
+                    <span className="capitalize">{scenario.type}</span>
+                  </div>
+                </div>
+                <Play className="w-5 h-5 text-blue-400 ml-3" />
+              </div>
+            </div>
+          ))
+        ) : (
+          tutorials[activeTab].map((tutorial) => (
           <div
             key={tutorial.id}
             onClick={() => handleTutorialClick(tutorial)}
@@ -140,7 +243,8 @@ const TutorialPanel = () => {
               )}
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {user.subscriptionTier === 'free' && (
@@ -154,6 +258,21 @@ const TutorialPanel = () => {
           </button>
         </div>
       )}
+
+      {/* Modals */}
+      <ScenarioModal
+        scenario={selectedScenario}
+        isOpen={showScenarioModal}
+        onClose={() => setShowScenarioModal(false)}
+        onComplete={handleScenarioComplete}
+      />
+      
+      <TutorialModal
+        tutorial={selectedTutorial}
+        isOpen={showTutorialModal}
+        onClose={() => setShowTutorialModal(false)}
+        onComplete={handleTutorialComplete}
+      />
     </div>
   );
 };
