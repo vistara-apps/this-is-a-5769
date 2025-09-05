@@ -18,33 +18,18 @@ const TradeForm = () => {
   const generateAIFeedback = async (trade) => {
     setIsLoading(true);
     try {
-      // Simulate AI feedback - in production, this would call OpenAI API
-      const mockFeedbacks = {
-        buy: [
-          "Good timing! The stock is showing positive momentum. Consider setting a stop-loss at 5% below your entry price.",
-          "Solid choice for a long position. The current trend supports your decision. Watch for resistance levels.",
-          "Nice entry point! The technical indicators suggest potential upward movement. Consider taking profits at 10% gain."
-        ],
-        sell: [
-          "Smart move to take profits! The stock was showing signs of resistance. Consider reinvesting in growing sectors.",
-          "Good risk management by closing this position. Monitor the market for re-entry opportunities.",
-          "Wise decision to exit. The momentum was shifting. Keep cash ready for better opportunities."
-        ]
+      // Import AI service
+      const { aiService } = await import('../services/api');
+      
+      // Get market context for AI analysis
+      const marketContext = {
+        currentPrice: currentPrice,
+        changePercent: marketData[selectedSymbol]?.changePercent || 0,
+        symbol: selectedSymbol
       };
 
-      const feedbacks = mockFeedbacks[trade.type];
-      const randomFeedback = feedbacks[Math.floor(Math.random() * feedbacks.length)];
-
-      const feedbackData = {
-        message: randomFeedback,
-        sentiment: Math.random() > 0.7 ? 'positive' : 'neutral',
-        tips: [
-          "Always set stop-loss orders to manage risk",
-          "Diversify your portfolio across different sectors",
-          "Keep learning about market fundamentals"
-        ]
-      };
-
+      // Generate AI feedback
+      const feedbackData = await aiService.generateTradeFeedback(trade, marketContext);
       setFeedback(feedbackData);
     } catch (error) {
       console.error('Error generating feedback:', error);
